@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>minesweeper</title>
+	</head>
+
+	<body>
+				<style>
+body{
+	background-image: url('backgrounHtml.jpg');
+
+}
+canvas{
+padding: 0;
+    margin: auto;
+    display: block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+		background-image: url('background.jpg');
+}
+		</style>
+		<canvas id="canvas" width="720" height="720"></canvas>
+		<script>
+		
+	let canvas = document.getElementById("canvas");
+	let context = canvas.getContext("2d");
+
+	let image0 = new Image();
+		image0.src = 'image0.png';
+	let image1 = new Image();
+		image1.src = 'image1.jpg';
+	let image2 = new Image();
+		image2.src = 'image2.png';
+	let image3 = new Image();
+		image3.src = 'image3.png';
+	let youwon = new Image();
+		youwon.src = 'youwon.jpg';
+		
+	let gamemode = 'play';
+		
+	let numOfMines = 30;
+	let mX;
+	let mY;
+	const NUM_POINTS = 15;
+	const points = [];
+	
+	
+	for(let i = 0; i < NUM_POINTS; i++) {
+		points[i] = [];
+			for(let j = 0;j < NUM_POINTS; j++)
+				points[i].push({
+				x: (canvas.width/NUM_POINTS)*j,
+				y: (canvas.height/NUM_POINTS)*i,
+				width: canvas.width/NUM_POINTS,
+				height: canvas.height/NUM_POINTS,
+				flagged: false,
+				revealed: false,
+				neighbormines: 0,
+				mine: false,
+				boomClicked: false
+
+			});
+	}
+	
+	const initBlocks = function(){
+		for(let i = 0; i < numOfMines; i++){
+			let j = Math.floor(Math.random() * points.length);
+			let k = Math.floor(Math.random() * points.length);
+			if(points[j][k].mine == false)
+				points[j][k].mine = true;
+			else i--;
+		}
+	};
+	
+	
+	const neighbors = function(x1,y1){
+		let directions = [
+			[x1 - 1, y1 - 1],
+			[x1    , y1 - 1],
+			[x1 + 1, y1 - 1],
+			[x1 - 1, y1    ],
+			[x1 + 1, y1    ],
+			[x1 - 1, y1 + 1],
+			[x1    , y1 + 1],
+			[x1 + 1, y1 + 1]
+		];
+		
+		var found = 0;
+        for (var i in directions) {
+            var x = directions[i][0];
+            var y = directions[i][1];
+
+            if(x>=0 && x<points[0].length && y>=0 && y<points.length)
+                if (points[y][x].mine == true) {
+                    found++;
+                }
+        }
+        return found;
+	};
+	
+	const mineNumbers = function(){
+		for(let i = 0; i < points.length; i++)
+			for(let j = 0; j < points[i].length; j++)
+			{
+				points[i][j].neighbormines = neighbors(j,i);
+			}
+		
+	};
+	
+	
+	const revealAllMines = function(){
+		for(let i = 0; i < points.length; i++)
+			for(let j = 0; j < points[i].length; j++)
+			{
+				if(points[i][j].mine == true)
+					points[i][j].revealed = true;
+			}
+		
+	};
+
+	
+	
+	
+	const revealNeighbors = function(x1,y1){
+		let directions = [
+			[x1 - 1, y1 - 1],
+			[x1    , y1 - 1],
+			[x1 + 1, y1 - 1],
+			[x1 - 1, y1    ],
+			[x1 + 1, y1    ],
+			[x1 - 1, y1 + 1],
+			[x1    , y1 + 1],
+			[x1 + 1, y1 + 1]
+		];
+		
+		
+        for (var i in directions) {
+            var x = directions[i][0];
+            var y = directions[i][1];
+
+            if(x>=0 && x<points[0].length && y>=0 && y<points.length)
+                points[y][x].revealed = true;
+        }
+		
+	};
+	
+	const zerosNeighbors = function(){
+		for(let t = 0; t < 2*NUM_POINTS; t++)
+			for(let i = 0; i < points.length; i++)
+				for(let j = 0; j < points[i].length; j++)
+				{
+					if(points[i][j].neighbormines == 0 && points[i][j].revealed == true && points[i][j].mine == false)
+						revealNeighbors(j,i);
+				}
+		
+	};
+	
+	const howManyRevealed = function(){
+		let rev = 0;
+			for(let i = 0; i < points.length; i++)
+				for(let j = 0; j < points[i].length; j++)
+				{
+					if(points[i][j].revealed == true && points[i][j].mine == false)
+						rev++;
+				}
+		return rev;
+	};
+	
+	context.canvas.addEventListener('click', function(event){
+		if(gamemode == 'play'){
+			mX= event.clientX - context.canvas.offsetLeft;
+			mY= event.clientY - context.canvas.offsetTop;
+			var x = Math.floor(mX/points[0][0].width);
+			var y = Math.floor(mY/points[0][0].height);
+			
+			points[y][x].revealed = true;
+			
+			if(points[y][x].mine == true){
+				points[y][x].boomClicked = true;
+				revealAllMines();
+				gamemode = 'youlost';
+			}
+			if(points[y][x].neighbormines == 0)
+				zerosNeighbors();
+				
+			if(howManyRevealed() == points.length*points[0].length - numOfMines)
+				gamemode = 'youwon';
+		}
+				
+	});
+	
+	const draw = function() {
+		context.clearRect(0,0,canvas.width, canvas.height);
+		
+		if(gamemode == 'play' || gamemode == 'youlost')
+			for(let i = 0; i < points.length; i++)
+				for(let j = 0; j < points[i].length; j++)
+				{
+					if(points[i][j].revealed == false){
+						context.drawImage(image0, points[i][j].x, points[i][j].y, points[i][j].width, points[i][j].height);
+					}
+					else	if (points[i][j].mine == true && points[i][j].revealed == true){
+						if(points[i][j].boomClicked == false)
+							context.drawImage(image1, points[i][j].x, points[i][j].y, points[i][j].width, points[i][j].height);
+						else context.drawImage(image2, points[i][j].x, points[i][j].y, points[i][j].width, points[i][j].height);
+					}
+					else if(points[i][j].revealed == true && points[i][j].mine == false){
+						context.drawImage(image3, points[i][j].x, points[i][j].y, points[i][j].width, points[i][j].height);
+						if(points[i][j].neighbormines != 0){
+							context.font = "30px Arial";
+							context.fillText(points[i][j].neighbormines + '', points[i][j].x + points[i][j].width/4, points[i][j].y + points[i][j].height*2/3);
+						}
+						
+						
+					}
+				}
+		
+		if(gamemode == 'youwon')
+			context.drawImage(youwon, 0, 0, canvas.width, canvas.height);
+		
+		setTimeout(draw, 10);
+
+		
+	};
+	
+	
+	initBlocks();
+	mineNumbers();
+	draw();
+
+	</script>
+	</body>
+</html>
